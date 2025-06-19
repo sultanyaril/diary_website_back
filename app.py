@@ -3,6 +3,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from models import db, bcrypt, User, DiaryEntry
 from config import Config
 from flask_cors import CORS
+from textblob import TextBlob  # Or any sentiment lib you prefer
 
 app = Flask(__name__)
 CORS(app)
@@ -114,6 +115,29 @@ def delete_entry(entry_id):
     db.session.delete(entry)
     db.session.commit()
     return jsonify({"message": "Entry deleted"}), 200
+
+
+@app.route('/evaluate', methods=['POST'])
+@jwt_required()
+def evaluate_entry():
+    data = request.get_json()
+    content = data.get('content', '')
+
+    if not content.strip():
+        return jsonify({"error": "Empty content"}), 400
+
+    # Basic sentiment analysis using TextBlob
+    blob = TextBlob(content)
+    polarity = blob.sentiment.polarity
+
+    if polarity > 0.1:
+        sentiment = 'positive'
+    elif polarity < -0.1:
+        sentiment = 'negative'
+    else:
+        sentiment = 'neutral'
+
+    return jsonify({"sentiment": sentiment}), 200
 
 
 if __name__ == '__main__':

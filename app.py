@@ -51,7 +51,8 @@ def add_entry():
     entry = DiaryEntry(user_id=user_id, content=data['content'])
     db.session.add(entry)
     db.session.commit()
-    return jsonify({"message": "Entry added"}), 201
+    return jsonify({"message": "Entry added", "id": entry.id}), 201
+
 
 # Get all diary entries
 @app.route('/entries', methods=['GET'])
@@ -68,6 +69,51 @@ def get_entries():
         for entry in entries
     ]
     return jsonify(result)
+
+
+# Get entry by ID
+@app.route('/entries/<int:entry_id>', methods=['GET'])
+@jwt_required()
+def get_entry(entry_id):
+    user_id = get_jwt_identity()
+    entry = DiaryEntry.query.filter_by(id=entry_id, user_id=user_id).first()
+    if not entry:
+        return jsonify({"message": "Entry not found"}), 404
+
+    return jsonify({
+        "id": entry.id,
+        "content": entry.content,
+        "timestamp": entry.timestamp.isoformat()
+    })
+
+
+# Update entry by ID
+@app.route('/entries/<int:entry_id>', methods=['PUT'])
+@jwt_required()
+def update_entry(entry_id):
+    user_id = get_jwt_identity()
+    entry = DiaryEntry.query.filter_by(id=entry_id, user_id=user_id).first()
+    if not entry:
+        return jsonify({"message": "Entry not found"}), 404
+
+    data = request.json
+    entry.content = data.get('content', entry.content)
+    db.session.commit()
+    return jsonify({"message": "Entry updated"}), 200
+
+
+# Delete entry by ID
+@app.route('/entries/<int:entry_id>', methods=['DELETE'])
+@jwt_required()
+def delete_entry(entry_id):
+    user_id = get_jwt_identity()
+    entry = DiaryEntry.query.filter_by(id=entry_id, user_id=user_id).first()
+    if not entry:
+        return jsonify({"message": "Entry not found"}), 404
+
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({"message": "Entry deleted"}), 200
 
 
 if __name__ == '__main__':

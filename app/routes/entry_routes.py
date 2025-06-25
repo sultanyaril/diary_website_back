@@ -9,7 +9,9 @@ entry_bp = Blueprint('entries', __name__)
 def add_entry():
     user_id = get_jwt_identity()
     data = request.json
-    entry = DiaryEntry(user_id=user_id, content=data['content'])
+    entry = DiaryEntry(user_id=user_id,
+                       title=data.get('title'),
+                       content=data['content'])
     db.session.add(entry)
     db.session.commit()
     return jsonify({"message": "Entry added", "id": entry.id}), 201
@@ -22,8 +24,9 @@ def get_entries():
     return jsonify([
         {
             "id": entry.id,
+            "title": entry.title,
             "content": entry.content,
-            "timestamp": entry.timestamp.isoformat(),
+            "timestamp": entry.timestamp,
             "sentiment": entry.sentiment
         } for entry in entries
     ])
@@ -37,8 +40,9 @@ def get_entry(entry_id):
         return jsonify({"message": "Entry not found"}), 404
     return jsonify({
         "id": entry.id,
+        "title": entry.title,
         "content": entry.content,
-        "timestamp": entry.timestamp.isoformat(),
+        "timestamp": entry.timestamp,
         "sentiment": entry.sentiment
     })
 
@@ -50,6 +54,7 @@ def update_entry(entry_id):
     if not entry:
         return jsonify({"message": "Entry not found"}), 404
     data = request.json
+    entry.title = data.get('title', entry.title)
     entry.content = data.get('content', entry.content)
     db.session.commit()
     return jsonify({"message": "Entry updated"}), 200

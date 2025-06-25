@@ -1,6 +1,7 @@
 from flask import jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from datetime import datetime, timezone
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
@@ -22,13 +23,6 @@ class DiaryEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, server_default=db.func.now())
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     sentiment = db.Column(db.String(20))  # Add this line
-
-    def jsonify(self):
-        jsonify({
-            "id": self.id,
-            "content": self.content,
-            "timestamp": self.timestamp.isoformat(),
-            "sentiment": self.sentiment
-        })
+    title = db.Column(db.String(255), nullable=True)

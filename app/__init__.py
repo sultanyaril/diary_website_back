@@ -22,9 +22,11 @@ def create_app():
     from .routes.auth_routes import auth_bp
     from .routes.entry_routes import entry_bp
     from .routes.evaluate_routes import evaluate_bp
+    from .routes.emotion_routes import emotion_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(entry_bp)
     app.register_blueprint(evaluate_bp)
+    app.register_blueprint(emotion_bp)
 
     return app

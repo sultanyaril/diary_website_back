@@ -24,5 +24,6 @@ class DiaryEntry(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    sentiment = db.Column(db.String(20))  # Add this line
+    emotion = db.Column(db.String(30))
+    model_prediction = db.Column(db.String(30))
     title = db.Column(db.String(255), nullable=True)

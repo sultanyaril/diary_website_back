@@ -36,7 +36,7 @@ def get_entries():
             "title": entry.title,
             "content": entry.content,
             "timestamp": entry.timestamp,
-            "sentiment": entry.sentiment
+            "emotion": entry.emotion
         } for entry in entries
     ])
 
@@ -53,7 +53,7 @@ def get_entry(entry_id):
         "title": entry.title,
         "content": entry.content,
         "timestamp": entry.timestamp,
-        "sentiment": entry.sentiment
+        "emotion": entry.emotion
     })
 
 

@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models import db, DiaryEntry
 from ..services.emotion_predictor import predict_emotion
+from ..utilities import remove_hypertext
 
 evaluate_bp = Blueprint('evaluate', __name__)
 
@@ -17,7 +18,7 @@ def evaluate_entry():
     if not content.strip():
         return jsonify({"error": "Empty content"}), 400
 
-    emotion = predict_emotion(content)
+    emotion = predict_emotion(remove_hypertext(content))
 
     if entry_id:
         entry = DiaryEntry.query.filter_by(id=entry_id, user_id=user_id).first()

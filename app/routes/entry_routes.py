@@ -29,16 +29,24 @@ def add_entry():
 @jwt_required()
 def get_entries():
     user_id = get_jwt_identity()
-    entries = DiaryEntry.query.filter_by(user_id=user_id).order_by(DiaryEntry.timestamp.desc()).all()
-    return jsonify([
-        {
-            "id": entry.id,
-            "title": entry.title,
-            "content": entry.content,
-            "timestamp": entry.timestamp,
-            "emotion": entry.emotion
-        } for entry in entries
-    ])
+    data = request.args
+    page = int(data.get('page', 1))
+    limit = int(data.get('limit', 10))
+    query = DiaryEntry.query.filter_by(user_id=user_id).order_by(DiaryEntry.timestamp.desc())
+    total = query.count()
+    entries = query.offset((page - 1) * limit).limit(limit).all()
+    return jsonify({
+        "entries": [
+            {
+                "id": entry.id,
+                "title": entry.title,
+                "content": entry.content,
+                "timestamp": entry.timestamp,
+                "emotion": entry.emotion
+            } for entry in entries
+        ],
+        "total": total
+    })
 
 
 @entry_bp.route('/entries/<int:entry_id>', methods=['GET'])

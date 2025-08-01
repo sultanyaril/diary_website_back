@@ -30,11 +30,18 @@ def add_entry():
 def get_entries():
     user_id = get_jwt_identity()
     data = request.args
-    page = int(data.get('page', 1))
-    limit = int(data.get('limit', 10))
+    all_entries = data.get('all', 'false').lower() == 'true'
     query = DiaryEntry.query.filter_by(user_id=user_id).order_by(DiaryEntry.timestamp.desc())
-    total = query.count()
-    entries = query.offset((page - 1) * limit).limit(limit).all()
+    
+    if all_entries:
+        entries = query.all()
+        total = len(entries)
+    else:
+        page = int(data.get('page', 1))
+        limit = int(data.get('limit', 10))
+        total = query.count()
+        entries = query.offset((page - 1) * limit).limit(limit).all()
+    
     return jsonify({
         "entries": [
             {
@@ -47,7 +54,6 @@ def get_entries():
         ],
         "total": total
     })
-
 
 @entry_bp.route('/entries/<int:entry_id>', methods=['GET'])
 @jwt_required()

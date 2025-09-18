@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from ..models import db, DiaryEntry
-from ..services.emotion_predictor import classifier, get_list_of_emotions
+from ..services.emotion_predictor import get_list_of_emotions
 
 emotion_bp = Blueprint('emotion', __name__)
 

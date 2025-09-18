@@ -1,50 +1,29 @@
 import re
-from transformers import pipeline, AutoTokenizer
-from googletrans import Translator
 import asyncio
-from numpy import average
+from transformers import pipeline
+from googletrans import Translator
 
+# Define candidate emotions (extend/modify as needed)
+CANDIDATE_EMOTIONS = [
+    "joy", "sadness", "anger", "fear", "disgust",
+    "surprise", "neutral", "love", "confusion", "pride"
+]
 
-# Load the emotion classifier
-tokenizer = AutoTokenizer.from_pretrained("bhadresh-savani/bert-base-go-emotion")
-classifier = pipeline("text-classification",
-                      model="bhadresh-savani/bert-base-go-emotion",
-                      top_k=None)
+# Load zero-shot classifier
+classifier = pipeline("zero-shot-classification", 
+                      model="facebook/bart-large-mnli",
+                      device=0)
 
-
-# Function to return all emotions provided by model
 def get_list_of_emotions():
-    return [classifier.model.config.id2label[i] for i in range(len(classifier.model.config.id2label))]
+    """Return the list of candidate emotions."""
+    return CANDIDATE_EMOTIONS
 
 
-# Function to split text into chunks
-def split_into_token_chunks(text, max_tokens=500):
-    # TODO: Split on sentences or paragraphs for better accuracy but slower performance
-    tokens = tokenizer.encode(text, add_special_tokens=False)
-    chunks = []
-    for i in range(0, len(tokens), max_tokens):
-        chunk_tokens = tokens[i:i + max_tokens]
-        chunk_text = tokenizer.decode(chunk_tokens)
-        chunks.append(chunk_text)
-    return chunks
-
-
-# Run emotion analysis
-def analyze_emotion(text):
-    chunks = split_into_token_chunks(text)
-    chunk_lengths = [len(tokenizer.encode(chunk, add_special_tokens=False)) for chunk in chunks]
-    scores = {}
-    for chunk in chunks:
-        probs = classifier(chunk)[0]
-        for emotion in probs:
-            scores[emotion['label']] = scores.get(emotion['label'], []) + [emotion['score']]
-    for emotion in scores:
-        scores[emotion] = average(scores[emotion], weights=chunk_lengths)
-    return scores
-
-
-# Extract entries based on date lines
 def extract_entries_from_text(text):
+    """
+    Split diary text into individual entries based on date lines (MM/DD/YYYY).
+    Returns list of dicts with 'date' and 'journal_entry'.
+    """
     entries = []
     pattern = r'(\d{2}/\d{2}/\d{4})'
     parts = re.split(pattern, text)
@@ -56,20 +35,37 @@ def extract_entries_from_text(text):
     return entries
 
 
-async def translate(text):
-    async with Translator() as translator:
-        translation = await translator.translate(text)
+async def translate_text(text, target_lang="en"):
+    """
+    Translate text to English (if needed).
+    """
+    async with Translator() as translator: 
+        translation = await translator.translate(text) 
     return translation
 
 
-def predict_emotion(text):
+def analyze_emotion(text, top_n=1):
     """
-    Predicts the emotion (sentiment) of the given text.
-    Returns emotion
+    Run zero-shot emotion classification.
+    Returns top-N emotions with their probabilities.
     """
-    translated = asyncio.run(translate(text)).text
+    result = classifier(text, candidate_labels=CANDIDATE_EMOTIONS, multi_label=True)
+    labels, scores = result["labels"], result["scores"]
 
-    emotions = analyze_emotion(translated)
-    sorted_emotions = dict(sorted(emotions.items(), key=lambda item: -item[1]))
-    most_probable_emotion = max(sorted_emotions, key=sorted_emotions.get)
-    return most_probable_emotion
+    # Sort by score
+    emotions = sorted(zip(labels, scores), key=lambda x: -x[1])
+
+    if top_n == 1:
+        return emotions[0][0]  # just the best label
+    return emotions[:top_n]    # list of (label, score)
+
+
+def predict_emotion(text, top_n=1, translate=True):
+    """
+    Predicts the most probable emotions of the given diary entry.
+    If translate=True, translates entry into English first.
+    """
+    if translate:
+        text = asyncio.run(translate_text(text)).text
+
+    return analyze_emotion(text, top_n=top_n)
